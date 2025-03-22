@@ -1,0 +1,29 @@
+[project]
+name = "ai-worthy-api-roo-1"
+version = "0.1.0"
+description = "A financial tracking API built with FastAPI and SQLite"
+authors = [
+    {name = "readyyyk",email = "mr.sairexer@gmail.com"}
+]
+readme = "README.md"
+requires-python = "3.13.2"
+dependencies = [
+    "fastapi>=0.109.0",
+    "sqlalchemy>=2.0.25",
+    "pydantic>=2.5.0",
+    "pydantic-settings>=2.1.0",
+    "uvicorn>=0.25.0",
+    "python-jose[cryptography]>=3.3.0",
+    "passlib[bcrypt]>=1.7.4",
+    "aiosqlite>=0.19.0",
+    "python-multipart>=0.0.6",
+    "greenlet (>=3.1.1,<4.0.0)"
+]
+
+[tool.poetry]
+packages = [{include = "ai_worthy_api_roo_1", from = "src"}]
+
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
