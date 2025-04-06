@@ -5,26 +5,26 @@ from typing import Optional
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.future import select
 
 from ai_worthy_api_roo_1.core.config import settings
-from ai_worthy_api_roo_1.database.database import get_db
 from ai_worthy_api_roo_1.database.models import User
+from ai_worthy_api_roo_1.dependencies import get_user_service
 from ai_worthy_api_roo_1.schemas.auth import TokenData
+from ai_worthy_api_roo_1.services.user_service import UserService
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl=f"{settings.API_V1_STR}/auth/token")
 
 
 async def get_current_user(
-    token: str = Depends(oauth2_scheme), db: AsyncSession = Depends(get_db)
+    token: str = Depends(oauth2_scheme),
+    user_service: UserService = Depends(get_user_service)
 ) -> User:
     """
     Get the current authenticated user.
     
     Args:
         token: The JWT token from the Authorization header.
-        db: The database session.
+        user_service: The user service.
         
     Returns:
         The authenticated user.
@@ -49,8 +49,7 @@ async def get_current_user(
     except JWTError:
         raise credentials_exception
     
-    result = await db.execute(select(User).filter(User.id == token_data.user_id))
-    user = result.scalars().first()
+    user = await user_service.get_user_by_id(token_data.user_id)
     
     if user is None:
         raise HTTPException(

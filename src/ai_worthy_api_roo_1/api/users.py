@@ -2,14 +2,13 @@
 
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
+from fastapi import APIRouter, Depends
 
-from ai_worthy_api_roo_1.database.database import get_db
+from ai_worthy_api_roo_1.dependencies import get_user_service
 from ai_worthy_api_roo_1.database.models import User
 from ai_worthy_api_roo_1.middleware.auth import get_current_user
 from ai_worthy_api_roo_1.schemas.user import UserBalance, UserOut
+from ai_worthy_api_roo_1.services.user_service import UserService
 
 router = APIRouter(prefix="/users", tags=["users"])
 
@@ -33,34 +32,16 @@ async def get_current_user_info(
 @router.get("/balance", response_model=UserBalance)
 async def get_user_balance(
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
+    user_service: UserService = Depends(get_user_service)
 ) -> Any:
     """
     Get current user's balance.
     
     Args:
         current_user: The authenticated user.
-        db: Database session.
+        user_service: User service.
         
     Returns:
         User balance and currency.
     """
-    result = await db.execute(
-        select(User.balance, User.primary_currency)
-        .where(User.id == current_user.id)
-    )
-    user_data = result.first()
-    
-    if not user_data:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="User not found",
-        )
-    
-    balance, currency = user_data
-    
-    return UserBalance(
-        # Convert from integer cents to float dollars
-        balance=balance / 100,
-        currency=currency
-    )
+    return await user_service.get_user_balance(current_user.id)

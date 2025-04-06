@@ -41,3 +41,11 @@ poetry run python run.py
 - poetry
 - fastapi
 - sqlalchemy (Declarative syntax, with DeclarativeBase)
+
+
+# TODO
+
+- [x] (architecture) repository classes: apllication should use technique called repository classes to abstract data retrieval and management
+- [ ] (feature) transcation groups: there should be a way to combine several transactions into a group, that would be displayed on frontend.
+- [ ] (feature) templates: there should be a way template transactions and CRUD operations around it
+- [ ] (feature) openapi.json: there should be a route to get current openapi spec in json format

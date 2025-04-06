@@ -1,21 +1,14 @@
 """Authentication-related API endpoints."""
 
-from datetime import timedelta
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, status
 from fastapi.security import OAuth2PasswordRequestForm
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
 
-from ai_worthy_api_roo_1.core.config import settings
-from ai_worthy_api_roo_1.core.security import (
-    create_access_token, get_password_hash, verify_password
-)
-from ai_worthy_api_roo_1.database.database import get_db
-from ai_worthy_api_roo_1.database.models import User
+from ai_worthy_api_roo_1.dependencies import get_auth_service
 from ai_worthy_api_roo_1.schemas.auth import Token, UserCreate, UserLogin
 from ai_worthy_api_roo_1.schemas.user import UserOut
+from ai_worthy_api_roo_1.services.auth_service import AuthService
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -23,115 +16,58 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 @router.post("/token", response_model=Token)
 async def login_for_access_token(
     form_data: OAuth2PasswordRequestForm = Depends(),
-    db: AsyncSession = Depends(get_db)
+    auth_service: AuthService = Depends(get_auth_service)
 ) -> Any:
     """
     OAuth2 compatible token login.
     
     Args:
         form_data: OAuth2 form data.
-        db: Database session.
+        auth_service: Authentication service.
         
     Returns:
         Access token.
     """
-    result = await db.execute(
-        select(User).where(User.username == form_data.username)
-    )
-    user = result.scalars().first()
+    user = await auth_service.authenticate_user(form_data.username, form_data.password)
     
-    if not user or not verify_password(form_data.password, user.password):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect username or password",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
+    if not user:
+        # The exception is raised in the service
+        pass
     
-    access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
-    access_token = create_access_token(
-        subject=user.id, expires_delta=access_token_expires
-    )
-    
-    return {"access_token": access_token, "token_type": "bearer"}
+    return await auth_service.create_access_token_for_user(user.id)
 
 
 @router.post("/login", response_model=UserOut)
 async def login(
     login_data: UserLogin,
-    db: AsyncSession = Depends(get_db)
+    auth_service: AuthService = Depends(get_auth_service)
 ) -> Any:
     """
     User login endpoint.
     
     Args:
         login_data: Login credentials.
-        db: Database session.
+        auth_service: Authentication service.
         
     Returns:
         User information.
     """
-    result = await db.execute(
-        select(User).where(User.username == login_data.username)
-    )
-    user = result.scalars().first()
-    
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="User not found",
-        )
-    
-    if not verify_password(login_data.password, user.password):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid password",
-        )
-    
-    return user
+    return await auth_service.login(login_data)
 
 
 @router.post("/register", response_model=bool)
 async def register(
     user_data: UserCreate,
-    db: AsyncSession = Depends(get_db)
+    auth_service: AuthService = Depends(get_auth_service)
 ) -> Any:
     """
     Register a new user.
     
     Args:
         user_data: User registration data.
-        db: Database session.
+        auth_service: Authentication service.
         
     Returns:
         True if registration was successful.
     """
-    # Check if username exists
-    result = await db.execute(
-        select(User).where(User.username == user_data.username)
-    )
-    existing_user = result.scalars().first()
-    
-    if existing_user:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="User already exists",
-        )
-    
-    # Set default image if not provided
-    if not user_data.image:
-        user_data.image = f"https://api.dicebear.com/7.x/identicon/svg?seed={user_data.username}"
-    
-    # Hash password
-    hashed_password = get_password_hash(user_data.password)
-    
-    # Create new user
-    new_user = User(
-        username=user_data.username,
-        password=hashed_password,
-        image=user_data.image,
-    )
-    
-    db.add(new_user)
-    await db.commit()
-    
-    return True
+    return await auth_service.register_user(user_data)

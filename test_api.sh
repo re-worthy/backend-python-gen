@@ -26,7 +26,7 @@ print_header() {
 print_header "REGISTERING A NEW USER"
 REGISTER_RESPONSE=$(curl -s -X POST \
     -H "Content-Type: application/json" \
-    -d '{"username":"testuser", "password":"password123"}' \
+    -d '{"username":"testuser2", "password":"password123"}' \
     $BASE_URL/auth/register)
 
 if [[ "$REGISTER_RESPONSE" == "true" ]]; then

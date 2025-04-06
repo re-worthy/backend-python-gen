@@ -23,6 +23,18 @@ dependencies = [
 [tool.poetry]
 packages = [{include = "ai_worthy_api_roo_1", from = "src"}]
 
+[tool.poetry.group.test.dependencies]
+pytest = ">=7.4.0"
+pytest-asyncio = ">=0.21.1"
+httpx = ">=0.24.1"
+pytest-cov = ">=4.1.0"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = "test_*.py"
+python_classes = "Test*"
+python_functions = "test_*"
+asyncio_mode = "auto"
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
